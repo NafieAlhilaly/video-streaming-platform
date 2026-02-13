@@ -1,6 +1,14 @@
 terraform {
   required_version = "~> 1.14"
 
+  cloud {
+    organization = "nafea"
+
+    workspaces {
+      name = "workspace-test"
+    }
+  }
+
   required_providers {
     # Primary provider — AWS Cloud Control API
     awscc = {
