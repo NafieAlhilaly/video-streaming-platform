@@ -1,0 +1,150 @@
+# Live Video Streaming Platform
+
+AWS-based live video streaming platform with SRT ingest, ABR transcoding, HLS packaging, and CDN distribution — fully provisioned with Terraform.
+
+## Architecture
+
+```
+[SRT Source] → [MediaConnect] → [MediaLive] → [MediaPackage v2] → [CloudFront] → [Web Player]
+                 SRT Ingest      Transcoding     HLS Packaging       CDN           hls.js
+```
+
+| Component | AWS Service | Purpose |
+|-----------|-------------|---------|
+| Ingest | Elemental MediaConnect | SRT listener — receives live stream from the internet |
+| Transcoding | Elemental MediaLive | ABR encoding (1080p / 720p / 480p) with H.264 + AAC |
+| Packaging | Elemental MediaPackage v2 | HLS manifest & MPEG-TS segment generation |
+| Distribution | Amazon CloudFront | Low-latency edge CDN delivery |
+| Player | S3 Static Website | hls.js-based HTML5 video player |
+
+## Signal Ingest (SRT)
+
+| Setting | Value |
+|---------|-------|
+| Protocol | SRT (Secure Reliable Transport) |
+| Mode | Listener — MediaConnect opens a port and waits for the sender |
+| Port | 5000 (configurable via `srt_port`) |
+| Latency | SRT default 120 ms — suitable for contribution-quality feeds |
+
+**Source options:** OBS Studio, FFmpeg, hardware encoders, or any SRT-capable software.
+
+```bash
+# Example: push a file as an SRT stream with FFmpeg
+ffmpeg -re -i input.mp4 -c copy -f mpegts "srt://<INGEST_IP>:5000"
+```
+
+## Transcoding — ABR Ladder
+
+| Rendition | Resolution | Video Bitrate | Codec | Profile | GOP | Audio |
+|-----------|-----------|---------------|-------|---------|-----|-------|
+| 1080p | 1920×1080 | 5 Mbps | H.264 | High | 2 s | AAC 128 kbps |
+| 720p | 1280×720 | 3 Mbps | H.264 | Main | 2 s | AAC 128 kbps |
+| 480p | 854×480 | 1.5 Mbps | H.264 | Main | 2 s | AAC 128 kbps |
+
+- **Frame rate:** 30 fps
+- **GOP structure:** Closed GOP, 2-second duration (60 frames)
+- **Segment duration:** 6 seconds
+
+## Packaging (HLS)
+
+| Setting | Value |
+|---------|-------|
+| Protocol | HLS (HTTP Live Streaming) |
+| Container | MPEG-TS |
+| Segment duration | 6 seconds |
+| Manifest | Multi-variant playlist with per-rendition child manifests |
+
+## CDN Distribution (CloudFront)
+
+| Setting | Value |
+|---------|-------|
+| Cache TTL | min 0 s · default 5 s · max 30 s |
+| Protocol | HTTPS (HTTP → HTTPS redirect) |
+| Price class | PriceClass_100 (N. America + Europe) |
+| Origin | HTTPS-only to MediaPackage v2 egress |
+
+## Web Player
+
+Minimal HTML5 page using [hls.js](https://github.com/video-dev/hls.js/) for adaptive HLS playback.
+
+- Automatic ABR quality switching
+- Network & media error recovery
+- Autoplay with muted audio (browser autoplay policy)
+
+## Prerequisites
+
+- [Terraform](https://www.terraform.io/downloads) ≥ 1.14.0
+- [AWS CLI](https://aws.amazon.com/cli/) configured with valid credentials
+- Bash (for helper scripts)
+
+## Quick Start
+
+```bash
+# 1. Deploy all infrastructure
+./scripts/deploy.sh
+
+# 2. Start the streaming pipeline
+./scripts/start-channel.sh
+
+# 3. Send an SRT stream (the script prints the ingest URL)
+ffmpeg -re -i input.mp4 -c copy -f mpegts "srt://<INGEST_IP>:5000"
+
+# 4. Open the player URL printed by the start script
+
+# 5. When finished
+./scripts/stop-channel.sh
+
+# 6. Tear down
+./scripts/destroy.sh
+```
+
+## Project Structure
+
+```
+├── infrastructure/          # Terraform configurations
+│   ├── cdn.tf                 # CloudFront distribution
+│   ├── iam.tf                 # IAM roles & policies
+│   ├── locals.tf              # Shared local values
+│   ├── mediaconnect.tf        # SRT ingest flow
+│   ├── medialive.tf           # ABR transcoding channel
+│   ├── mediapackage.tf        # HLS packaging
+│   ├── outputs.tf             # Terraform outputs
+│   ├── providers.tf           # AWS provider config
+│   ├── variables.tf           # Input variables
+│   ├── versions.tf            # Version constraints
+│   └── website.tf             # S3 static website
+├── scripts/                 # Helper scripts
+│   ├── deploy.sh              # terraform init + plan + apply
+│   ├── destroy.sh             # terraform destroy
+│   ├── start-channel.sh       # Start MediaConnect + MediaLive
+│   └── stop-channel.sh        # Stop MediaLive + MediaConnect
+├── website/                 # Web player source
+│   └── index.html.tftpl       # hls.js player (Terraform template)
+└── README.md
+```
+
+## Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `aws_region` | `us-east-1` | AWS deployment region |
+| `project_name` | `live-stream` | Resource naming prefix |
+| `environment` | `dev` | Environment tag |
+| `srt_port` | `5000` | SRT listener port |
+| `srt_source_cidr` | `0.0.0.0/0` | Allowed SRT sender CIDR |
+
+Override defaults with a `terraform.tfvars` file or `-var` flags:
+
+```bash
+terraform -chdir=infrastructure apply -var="srt_port=6000"
+```
+
+## Cleanup
+
+```bash
+# Stop running services first (MediaLive charges per-minute while running)
+./scripts/stop-channel.sh
+
+# Destroy all AWS resources
+./scripts/destroy.sh
+```
