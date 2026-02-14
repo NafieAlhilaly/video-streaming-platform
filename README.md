@@ -4,10 +4,7 @@ AWS-based live video streaming platform with SRT ingest, ABR transcoding, HLS pa
 
 ## Architecture
 
-```
-[SRT Source] → [MediaConnect] → [MediaLive] → [MediaPackage v2] → [CloudFront] → [Web Player]
-                 SRT Ingest      Transcoding     HLS Packaging       CDN           hls.js
-```
+![](./charts/stream_flow.png)
 
 | Component | AWS Service | Purpose |
 |-----------|-------------|---------|
@@ -15,7 +12,7 @@ AWS-based live video streaming platform with SRT ingest, ABR transcoding, HLS pa
 | Transcoding | Elemental MediaLive | ABR encoding (1080p / 720p / 480p) with H.264 + AAC |
 | Packaging | Elemental MediaPackage v2 | HLS manifest & MPEG-TS segment generation |
 | Distribution | Amazon CloudFront | Low-latency edge CDN delivery |
-| Player | S3 Static Website | hls.js-based HTML5 video player |
+| Player | Static Website | hls.js-based HTML5 video player |
 
 ## Signal Ingest (SRT)
 
@@ -26,12 +23,7 @@ AWS-based live video streaming platform with SRT ingest, ABR transcoding, HLS pa
 | Port | 5000 (configurable via `srt_port`) |
 | Latency | SRT default 120 ms — suitable for contribution-quality feeds |
 
-**Source options:** OBS Studio, FFmpeg, hardware encoders, or any SRT-capable software.
-
-```bash
-# Example: push a file as an SRT stream with FFmpeg
-ffmpeg -re -i input.mp4 -c copy -f mpegts "srt://<INGEST_IP>:5000"
-```
+**Source options:** OBS Studio
 
 ## Transcoding — ABR Ladder
 
@@ -60,68 +52,11 @@ ffmpeg -re -i input.mp4 -c copy -f mpegts "srt://<INGEST_IP>:5000"
 |---------|-------|
 | Cache TTL | min 0 s · default 5 s · max 30 s |
 | Protocol | HTTPS (HTTP → HTTPS redirect) |
-| Price class | PriceClass_100 (N. America + Europe) |
-| Origin | HTTPS-only to MediaPackage v2 egress |
 
 ## Web Player
 
 Minimal HTML5 page using [hls.js](https://github.com/video-dev/hls.js/) for adaptive HLS playback.
 
-- Automatic ABR quality switching
-- Network & media error recovery
-- Autoplay with muted audio (browser autoplay policy)
-
-## Prerequisites
-
-- [Terraform](https://www.terraform.io/downloads) ≥ 1.14.0
-- [AWS CLI](https://aws.amazon.com/cli/) configured with valid credentials
-- Bash (for helper scripts)
-
-## Quick Start
-
-```bash
-# 1. Deploy all infrastructure
-./scripts/deploy.sh
-
-# 2. Start the streaming pipeline
-./scripts/start-channel.sh
-
-# 3. Send an SRT stream (the script prints the ingest URL)
-ffmpeg -re -i input.mp4 -c copy -f mpegts "srt://<INGEST_IP>:5000"
-
-# 4. Open the player URL printed by the start script
-
-# 5. When finished
-./scripts/stop-channel.sh
-
-# 6. Tear down
-./scripts/destroy.sh
-```
-
-## Project Structure
-
-```
-├── infrastructure/          # Terraform configurations
-│   ├── cdn.tf                 # CloudFront distribution
-│   ├── iam.tf                 # IAM roles & policies
-│   ├── locals.tf              # Shared local values
-│   ├── mediaconnect.tf        # SRT ingest flow
-│   ├── medialive.tf           # ABR transcoding channel
-│   ├── mediapackage.tf        # HLS packaging
-│   ├── outputs.tf             # Terraform outputs
-│   ├── providers.tf           # AWS provider config
-│   ├── variables.tf           # Input variables
-│   ├── versions.tf            # Version constraints
-│   └── website.tf             # S3 static website
-├── scripts/                 # Helper scripts
-│   ├── deploy.sh              # terraform init + plan + apply
-│   ├── destroy.sh             # terraform destroy
-│   ├── start-channel.sh       # Start MediaConnect + MediaLive
-│   └── stop-channel.sh        # Stop MediaLive + MediaConnect
-├── website/                 # Web player source
-│   └── index.html.tftpl       # hls.js player (Terraform template)
-└── README.md
-```
 
 ## Configuration
 
@@ -137,14 +72,4 @@ Override defaults with a `terraform.tfvars` file or `-var` flags:
 
 ```bash
 terraform -chdir=infrastructure apply -var="srt_port=6000"
-```
-
-## Cleanup
-
-```bash
-# Stop running services first (MediaLive charges per-minute while running)
-./scripts/stop-channel.sh
-
-# Destroy all AWS resources
-./scripts/destroy.sh
 ```
