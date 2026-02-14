@@ -36,3 +36,21 @@ resource "awscc_mediapackagev2_origin_endpoint" "hls" {
 
   tags = local.common_tags_list
 }
+
+# Allow CloudFront (and any viewer) to pull from the origin endpoint
+resource "awscc_mediapackagev2_origin_endpoint_policy" "hls" {
+  channel_group_name   = awscc_mediapackagev2_channel_group.main.channel_group_name
+  channel_name         = awscc_mediapackagev2_channel.main.channel_name
+  origin_endpoint_name = awscc_mediapackagev2_origin_endpoint.hls.origin_endpoint_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowCloudFrontRead"
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "mediapackagev2:GetObject"
+      Resource  = awscc_mediapackagev2_origin_endpoint.hls.arn
+    }]
+  })
+}

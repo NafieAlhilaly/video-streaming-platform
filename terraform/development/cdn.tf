@@ -24,12 +24,16 @@ resource "aws_cloudfront_distribution" "stream" {
 
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD", "OPTIONS"]
     target_origin_id       = "mediapackage"
     viewer_protocol_policy = "redirect-to-https"
 
     forwarded_values {
-      headers      = ["Origin"]
+      headers = [
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+        "Origin",
+      ]
       query_string = true
 
       cookies {

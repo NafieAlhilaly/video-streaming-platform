@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region for resource deployment"
   type        = string
-  default     = "us-east-1"
+  default     = "us-east-2"
 }
 
 variable "environment" {
@@ -20,6 +20,12 @@ variable "srt_port" {
   description = "SRT listener port for MediaConnect ingest"
   type        = number
   default     = 5000
+}
+
+variable "srt_latency" {
+  description = "SRT minimum latency in milliseconds (retransmission buffer)"
+  type        = number
+  default     = 500
 }
 
 variable "srt_source_cidr" {

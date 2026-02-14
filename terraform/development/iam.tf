@@ -27,13 +27,15 @@ data "aws_iam_policy_document" "medialive_permissions" {
     resources = ["arn:aws:logs:*:*:*"]
   }
 
-  # MediaConnect — read flow sources
+  # MediaConnect — managed by MediaLive
   statement {
     sid = "MediaConnect"
 
     actions = [
       "mediaconnect:AddFlowOutputs",
+      "mediaconnect:ManagedAddOutput",
       "mediaconnect:ManagedDescribeFlow",
+      "mediaconnect:ManagedRemoveOutput",
     ]
 
     resources = ["*"]

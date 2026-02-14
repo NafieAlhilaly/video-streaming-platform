@@ -10,8 +10,11 @@
 #   Segment duration: 6 seconds                  Channel class: SINGLE_PIPELINE
 
 resource "aws_medialive_input" "main" {
-  name = "${local.name_prefix}-input"
-  type = "MEDIACONNECT"
+  depends_on = [awscc_iam_role.medialive]
+
+  name     = "${local.name_prefix}-input"
+  role_arn = awscc_iam_role.medialive.arn
+  type     = "MEDIACONNECT"
 
   media_connect_flows {
     flow_arn = awscc_mediaconnect_flow.main.flow_arn

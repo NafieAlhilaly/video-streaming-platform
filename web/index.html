@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stream Player</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f0f;
+      color: #e0e0e0;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+
+    .player-container {
+      width: 100%;
+      max-width: 960px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    video {
+      width: 100%;
+      display: block;
+    }
+
+    .controls {
+      padding: 1rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+    }
+
+    button {
+      padding: 0.5rem 1.25rem;
+      border: none;
+      border-radius: 4px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #1d4ed8; }
+
+    .status {
+      width: 100%;
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 0.5rem;
+    }
+
+    .status.error { color: #ef4444; }
+    .status.live  { color: #22c55e; }
+  </style>
+</head>
+<body>
+  <h1>Live Stream Player</h1>
+
+  <div class="player-container">
+    <video id="video" controls autoplay muted></video>
+
+    <div class="controls">
+      <input id="url" type="text" placeholder="Paste HLS URL (.m3u8)">
+      <button id="play">Play</button>
+      <div id="status" class="status">Enter an HLS URL and press Play</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    const video  = document.getElementById('video');
+    const urlBox = document.getElementById('url');
+    const btn    = document.getElementById('play');
+    const status = document.getElementById('status');
+
+    // Allow URL via ?url= query parameter
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('url')) {
+      urlBox.value = params.get('url');
+    }
+
+    function setStatus(msg, cls = '') {
+      status.textContent = msg;
+      status.className   = 'status' + (cls ? ' ' + cls : '');
+    }
+
+    function loadStream() {
+      const src = urlBox.value.trim();
+      if (!src) { setStatus('Please enter a URL', 'error'); return; }
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+
+        hls.loadSource(src);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play();
+          setStatus('Stream connected', 'live');
+        });
+
+        hls.on(Hls.Events.ERROR, (_e, data) => {
+          if (data.fatal) {
+            setStatus('Fatal error: ' + data.type + ' — ' + data.details, 'error');
+            hls.destroy();
+          }
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari native HLS
+        video.src = src;
+        video.addEventListener('loadedmetadata', () => {
+          video.play();
+          setStatus('Stream connected (native)', 'live');
+        });
+      } else {
+        setStatus('HLS not supported in this browser', 'error');
+      }
+    }
+
+    btn.addEventListener('click', loadStream);
+    urlBox.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadStream(); });
+
+    // Auto-play if URL was provided via query param
+    if (urlBox.value) loadStream();
+  </script>
+</body>
+</html>

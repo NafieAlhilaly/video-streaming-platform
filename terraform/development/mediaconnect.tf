@@ -10,8 +10,13 @@ resource "awscc_mediaconnect_flow" "main" {
   source = {
     description    = "Public SRT ingest source"
     ingest_port    = var.srt_port
+    min_latency    = var.srt_latency
     name           = "phone-stream-source"
     protocol       = "srt-listener"
     whitelist_cidr = var.srt_source_cidr
+  }
+
+  source_monitoring_config = {
+    thumbnail_state = "ENABLED"
   }
 }
