@@ -1,8 +1,8 @@
-# Amazon CloudFront — CDN distribution for the live HLS stream
+# Amazon CloudFront — CDN distribution for the LL-HLS live stream
 #
-# Fronts the MediaPackage v2 origin endpoint with low TTLs suitable for live
-# content (default 5 s, max 30 s).  Viewers hit CloudFront edge locations
-# instead of the origin directly.
+# Fronts the MediaPackage v2 origin endpoint with aggressive TTLs optimised for
+# low-latency HLS (default 1 s, max 8 s).  Viewers hit CloudFront edge
+# locations instead of the origin directly.
 
 resource "aws_cloudfront_distribution" "stream" {
   comment         = "CDN for ${var.project_name} live stream"
@@ -41,9 +41,9 @@ resource "aws_cloudfront_distribution" "stream" {
       }
     }
 
-    # Low TTLs — live segments change frequently
-    default_ttl = 5
-    max_ttl     = 30
+    # Aggressive TTLs — LL-HLS requires very short caching for partial segments
+    default_ttl = 1
+    max_ttl     = 8
     min_ttl     = 0
   }
 

@@ -36,14 +36,11 @@ locals {
   audio_bitrate         = 128000
   framerate_denominator = 1
   framerate_numerator   = 30
-  gop_size_seconds      = 2
-  segment_duration      = 6
+  gop_size_seconds      = 1
+  segment_duration      = 2
 
-  # CloudFront playback URL — replaces the MediaPackage egress domain with the
-  # CloudFront distribution domain so viewers hit the CDN instead of the origin.
-  hls_playback_url = replace(
-    awscc_mediapackagev2_origin_endpoint.hls.hls_manifest_urls[0],
-    awscc_mediapackagev2_channel_group.main.egress_domain,
-    aws_cloudfront_distribution.stream.domain_name
-  )
+  # CloudFront playback URL — built from known resource attributes so the value
+  # is available at plan time (the computed *_manifest_urls list is null until
+  # after apply).
+  hls_playback_url = "https://${aws_cloudfront_distribution.stream.domain_name}/out/v1/${awscc_mediapackagev2_channel_group.main.channel_group_name}/${awscc_mediapackagev2_channel.main.channel_name}/${awscc_mediapackagev2_origin_endpoint.hls.origin_endpoint_name}/index.m3u8"
 }

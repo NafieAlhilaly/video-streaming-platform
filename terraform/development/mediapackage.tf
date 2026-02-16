@@ -1,8 +1,9 @@
-# AWS Elemental MediaPackage v2 — HLS packaging
+# AWS Elemental MediaPackage v2 — LL-HLS packaging
 #
-# Receives HLS segments from MediaLive and serves them to viewers through an
-# origin endpoint.  The origin endpoint generates multi-variant HLS manifests
-# with 6-second MPEG-TS segments.
+# Receives fMP4 segments from MediaLive and serves them to viewers through an
+# origin endpoint.  The origin endpoint generates LL-HLS (Low-Latency HLS)
+# manifests with 2-second CMAF segments and partial segments for sub-second
+# chunk delivery.
 
 resource "awscc_mediapackagev2_channel_group" "main" {
   channel_group_name = "${local.name_prefix}-group"
@@ -22,12 +23,13 @@ resource "awscc_mediapackagev2_channel" "main" {
 resource "awscc_mediapackagev2_origin_endpoint" "hls" {
   channel_group_name   = awscc_mediapackagev2_channel_group.main.channel_group_name
   channel_name         = awscc_mediapackagev2_channel.main.channel_name
-  container_type       = "TS"
-  description          = "HLS origin endpoint"
+  container_type       = "CMAF"
+  description          = "LL-HLS origin endpoint"
   origin_endpoint_name = "${local.name_prefix}-hls"
 
-  hls_manifests = [{
-    manifest_name = "index"
+  low_latency_hls_manifests = [{
+    manifest_name                      = "index"
+    program_date_time_interval_seconds = 1
   }]
 
   segment = {

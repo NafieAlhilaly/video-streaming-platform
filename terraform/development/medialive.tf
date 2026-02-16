@@ -1,13 +1,14 @@
-# AWS Elemental MediaLive — ABR transcoding
+# AWS Elemental MediaLive — ABR transcoding (LL-HLS)
 #
 # Receives a single-bitrate feed from MediaConnect and encodes it into an ABR
-# ladder (1080p / 720p / 480p) using H.264 + AAC.  The resulting HLS segments
-# are pushed via HTTP PUT to the MediaPackage v2 ingest endpoint.
+# ladder (1080p / 720p / 480p) using H.264 + AAC.  The resulting HLS (MPEG-TS)
+# segments are pushed via HTTP PUT to MediaPackage v2, which repackages them
+# into CMAF/LL-HLS on egress.
 #
 # Encoding parameters:
 #   Codec:            H.264 (AVC)                Audio: AAC-LC 128 kbps
-#   GOP:              2 seconds (closed)         Framerate: 30 fps
-#   Segment duration: 6 seconds                  Channel class: SINGLE_PIPELINE
+#   GOP:              1 second (closed)          Framerate: 30 fps
+#   Segment duration: 2 seconds                  Channel class: SINGLE_PIPELINE
 
 resource "aws_medialive_input" "main" {
   depends_on = [awscc_iam_role.medialive]
