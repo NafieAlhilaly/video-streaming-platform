@@ -2,6 +2,18 @@
 # MediaLive needs permissions to pull from MediaConnect, push HLS to
 # MediaPackage v2, and write operational logs to CloudWatch.
 
+resource "awscc_iam_role" "medialive" {
+  assume_role_policy_document = data.aws_iam_policy_document.medialive_assume_role.json
+  role_name                   = "${local.name_prefix}-medialive-role"
+
+  policies = [{
+    policy_document = data.aws_iam_policy_document.medialive_permissions.json
+    policy_name     = "${local.name_prefix}-medialive-policy"
+  }]
+
+  tags = local.common_tags_list
+}
+
 data "aws_iam_policy_document" "medialive_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -51,16 +63,4 @@ data "aws_iam_policy_document" "medialive_permissions" {
 
     resources = ["*"]
   }
-}
-
-resource "awscc_iam_role" "medialive" {
-  assume_role_policy_document = data.aws_iam_policy_document.medialive_assume_role.json
-  role_name                   = "${local.name_prefix}-medialive-role"
-
-  policies = [{
-    policy_document = data.aws_iam_policy_document.medialive_permissions.json
-    policy_name     = "${local.name_prefix}-medialive-policy"
-  }]
-
-  tags = local.common_tags_list
 }

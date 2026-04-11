@@ -10,6 +10,12 @@ terraform {
   }
 
   required_providers {
+    # Archive provider — for packaging Lambda function code
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.5"
+    }
+
     # Primary provider — AWS Cloud Control API
     awscc = {
       source  = "hashicorp/awscc"

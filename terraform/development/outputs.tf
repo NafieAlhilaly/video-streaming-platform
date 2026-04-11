@@ -18,9 +18,34 @@ output "mediaconnect_flow_arn" {
   value       = awscc_mediaconnect_flow.main.flow_arn
 }
 
-output "medialive_channel_id" {
-  description = "MediaLive channel ID"
-  value       = aws_medialive_channel.main.id
+output "dynamodb_table_name" {
+  description = "DynamoDB table name for MediaLive channel registry"
+  value       = aws_dynamodb_table.medialive_channels.name
+}
+
+output "dynamodb_config_table_name" {
+  description = "DynamoDB table name for MediaLive channel configurations"
+  value       = aws_dynamodb_table.medialive_config_registry.name
+}
+
+output "dynamodb_config_table_arn" {
+  description = "ARN of the MediaLive configuration table"
+  value       = aws_dynamodb_table.medialive_config_registry.arn
+}
+
+output "lambda_creator_arn" {
+  description = "ARN of the MediaLive creator Lambda function"
+  value       = aws_lambda_function.medialive_creator.arn
+}
+
+output "lambda_deleter_arn" {
+  description = "ARN of the MediaLive deleter Lambda function"
+  value       = aws_lambda_function.medialive_deleter.arn
+}
+
+output "lambda_orchestrator_role_arn" {
+  description = "IAM role ARN for Lambda orchestrator"
+  value       = aws_iam_role.lambda_orchestrator.arn
 }
 
 output "mediapackage_channel_name" {
